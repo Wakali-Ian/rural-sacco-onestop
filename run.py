@@ -13,8 +13,8 @@ def init_db():
 
 
 @app.cli.command("seed")
-@click.option("--reset", is_flag=True, help="Wipe existing business data first")
-@click.option("--members", default=50, help="Number of members to generate")
+@click.option("--reset", is_flag=True)
+@click.option("--members", default=50)
 def seed_cmd(reset, members):
     from scripts.seed import seed, reset as do_reset
     with app.app_context():
@@ -43,6 +43,42 @@ def rescore_cmd():
         print("Risk checks:")
         for k, v in risks.items():
             print(f"  {k:>20}: {v} open")
+
+
+@app.cli.command("load-mpesa")
+@click.option("--reset", is_flag=True, help="Clear M-Pesa table first")
+@click.option("--count", default=40)
+def load_mpesa_cmd(reset, count):
+    from scripts.mpesa_mock import generate
+    from app.models.mpesa import MpesaTransaction
+    with app.app_context():
+        if reset:
+            db.session.query(MpesaTransaction).delete()
+            db.session.commit()
+            print("M-Pesa table cleared.")
+        stats = generate(n=count)
+        for k, v in stats.items():
+            print(f"  {k:>14}: {v}")
+
+
+@app.cli.command("reconcile")
+def reconcile_cmd():
+    from app.services.mpesa_matcher import reconcile_all, method_breakdown
+    with app.app_context():
+        result = reconcile_all()
+        print("Reconciliation complete.")
+        print(f"  Processed:  {result['total']}")
+        print(f"  Matched:    {result['matched']}")
+        print(f"  Unmatched:  {result['unmatched']}")
+        if result["matched"] > 0:
+            total = result["matched"] + result["unmatched"]
+            rate = 100.0 * result["matched"] / total
+            print(f"  Match rate: {rate:.1f}%")
+        bd = method_breakdown()
+        if bd:
+            print("Breakdown by method:")
+            for method, cnt in bd.items():
+                print(f"  {method:>20}: {cnt}")
 
 
 if __name__ == "__main__":
