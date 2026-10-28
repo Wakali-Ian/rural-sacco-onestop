@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Rural SACCO{% endblock %}
+{% block content %}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card primary">
+            <div class="card-body">
+                <div class="stat-value">{{ total_members }}</div>
+                <div class="stat-label">Active Members</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card success">
+            <div class="card-body">
+                <div class="stat-value">KES {{ '{:,.0f}'.format(total_savings) }}</div>
+                <div class="stat-label">Total Savings</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card warning">
+            <div class="card-body">
+                <div class="stat-value">KES {{ '{:,.0f}'.format(total_loan_book) }}</div>
+                <div class="stat-label">Loan Book</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card {{ 'success' if match_rate >= 90 else 'danger' }}">
+            <div class="card-body">
+                <div class="stat-value">{{ '%.1f'|format(match_rate) }}%</div>
+                <div class="stat-label">M-Pesa Match Rate</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><strong>Recent M-Pesa Transactions</strong>
+                    <span class="badge bg-danger ms-2">{{ unmatched_count }} unmatched</span>
+                </span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr><th>Trans ID</th><th>Phone</th><th>Amount</th><th>Ref</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for m in recent_mpesa %}
+                        <tr class="{{ 'row-matched' if m.status=='matched' else 'row-unmatched' }}">
+                            <td><code>{{ m.trans_id }}</code></td>
+                            <td>{{ m.msisdn }}</td>
+                            <td>KES {{ '{:,.2f}'.format(m.amount|float) }}</td>
+                            <td>{{ m.account_ref or '—' }}</td>
+                            <td>
+                                {% if m.status=='matched' %}
+                                    <span class="badge bg-success">matched: {{ m.match_method }}</span>
+                                {% else %}
+                                    <span class="badge bg-danger">unmatched</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="text-center text-muted py-3">No M-Pesa transactions yet. Run <code>flask load-mpesa</code>.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header"><strong>Open Risks ({{ open_risks|length }})</strong></div>
+            <div class="list-group list-group-flush" style="max-height:340px;overflow-y:auto;">
+                {% for r in open_risks %}
+                <div class="list-group-item">
+                    <span class="badge bg-{{ 'danger' if r.severity in ('high','critical') else 'warning' }} me-1">{{ r.severity }}</span>
+                    <small class="text-muted">{{ r.risk_type }}</small><br>
+                    <small>{{ r.description[:80] }}{% if r.description|length > 80 %}…{% endif %}</small>
+                </div>
+                {% else %}
+                <div class="list-group-item text-muted">No open risks. Run <code>flask rescore</code>.</div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><strong>Overdue Loans</strong></div>
+            <div class="list-group list-group-flush">
+                {% for loan in overdue %}
+                <div class="list-group-item d-flex justify-content-between">
+                    <span><small><code>{{ loan.loan_number }}</code></small></span>
+                    <span class="text-danger small">KES {{ '{:,.0f}'.format(loan.outstanding_balance|float) }}</span>
+                </div>
+                {% else %}
+                <div class="list-group-item text-muted small">None overdue.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
