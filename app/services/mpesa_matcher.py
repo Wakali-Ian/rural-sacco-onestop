@@ -116,3 +116,32 @@ def method_breakdown():
             .filter(MpesaTransaction.status == "matched")
             .group_by(MpesaTransaction.match_method).all())
     return {method or "unknown": count for method, count in rows}
+
+
+def reconcile_all_with_sms():
+    """Like reconcile_all but sends an SMS receipt to each matched member."""
+    from app.services.sms_service import send_sms
+    from app.services.i18n import t
+    pending = MpesaTransaction.query.filter_by(status="unmatched").all()
+    matched = 0
+    unmatched = 0
+    for m in pending:
+        result = match_one(m)
+        if result:
+            member, conf, method = result
+            apply_match(m, member, conf, method)
+            matched += 1
+            lang = member.language_preference or "sw"
+            action = "Deposit" if lang == "en" else "Amana"
+            try:
+                send_sms(member.phone, t(lang, "sms_receipt",
+                                         action=action,
+                                         amount=float(m.amount),
+                                         ref=m.trans_id,
+                                         balance=float(member.savings_balance or 0)))
+            except Exception:
+                pass
+        else:
+            unmatched += 1
+    db.session.commit()
+    return {"matched": matched, "unmatched": unmatched, "total": len(pending)}

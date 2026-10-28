@@ -83,3 +83,13 @@ def reconcile_cmd():
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
+
+
+@app.cli.command("sms-test")
+@click.argument("phone")
+@click.argument("message")
+def sms_test_cmd(phone, message):
+    """Send a test SMS (dev mode prints to console)."""
+    from app.services.sms_service import send_sms
+    with app.app_context():
+        print(send_sms(phone, message))

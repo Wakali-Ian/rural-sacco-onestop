@@ -9,6 +9,10 @@ def create_app(config_class=Config):
     db.init_app(app)
 
     from app.routes.mpesa import mpesa_bp
+    from app.routes.ussd import ussd_bp
+    from app.routes.voice import voice_bp
     app.register_blueprint(mpesa_bp)
+    app.register_blueprint(ussd_bp)
+    app.register_blueprint(voice_bp)
 
     return app
