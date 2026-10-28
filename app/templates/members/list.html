@@ -3,11 +3,16 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0">Members ({{ members|length }})</h4>
-    <a href="{{ url_for('members.export_xlsx') }}" class="btn btn-success btn-sm">Export to Excel</a>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('members.export_xlsx') }}" class="btn btn-outline-success btn-sm">Export Excel</a>
+        {% if session.get('role') in ('admin', 'treasurer') %}
+        <a href="{{ url_for('members.new_member') }}" class="btn btn-primary btn-sm">+ Add Member</a>
+        {% endif %}
+    </div>
 </div>
 <form class="mb-3" method="get">
     <div class="input-group">
-        <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search by name, member number, or phone...">
+        <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search name, member # or phone...">
         <button class="btn btn-outline-secondary" type="submit">Search</button>
     </div>
 </form>
@@ -15,21 +20,38 @@
     <div class="table-responsive">
         <table class="table table-hover mb-0">
             <thead class="table-light">
-                <tr><th>No.</th><th>Name</th><th>Phone</th><th>Savings</th><th>Rank</th><th>Score</th><th></th></tr>
+                <tr><th>No.</th><th>Name</th><th>Phone</th><th class="text-end">Savings</th><th>Rank</th><th>Score</th><th>Status</th><th class="text-end">Actions</th></tr>
             </thead>
             <tbody>
                 {% for m in members %}
-                <tr>
-                    <td><code>{{ m.member_number }}</code></td>
+                <tr class="{{ 'table-secondary' if m.status != 'active' }}">
+                    <td class="mono">{{ m.member_number }}</td>
                     <td>{{ m.full_name }}</td>
                     <td>{{ m.phone }}</td>
-                    <td>KES {{ '{:,.0f}'.format(m.savings_balance|float) }}</td>
+                    <td class="text-end">KES {{ '{:,.0f}'.format(m.savings_balance|float) }}</td>
                     <td><span class="rank-badge rank-{{ m.default_rank }}">{{ m.default_rank }}</span></td>
                     <td>{{ '%.1f'|format(m.trust_score) }}</td>
-                    <td><a href="{{ url_for('members.detail', member_id=m.id) }}" class="btn btn-sm btn-outline-primary">View</a></td>
+                    <td>
+                        {% if m.status == 'active' %}<span class="status-pill status-success">active</span>
+                        {% else %}<span class="status-pill status-muted">inactive</span>{% endif %}
+                    </td>
+                    <td class="text-end">
+                        <a href="{{ url_for('members.detail', member_id=m.id) }}" class="btn btn-sm btn-outline-primary">View</a>
+                        {% if session.get('role') in ('admin', 'treasurer') %}
+                        <a href="{{ url_for('members.edit_member', member_id=m.id) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                        {% endif %}
+                        {% if session.get('role') == 'admin' %}
+                        <form method="post" action="{{ url_for('members.toggle_status', member_id=m.id) }}" class="d-inline"
+                              onsubmit="return confirm('{{ 'Deactivate' if m.status=='active' else 'Reactivate' }} this member?');">
+                            <button type="submit" class="btn btn-sm btn-outline-{{ 'danger' if m.status=='active' else 'success' }}">
+                                {{ 'Deactivate' if m.status=='active' else 'Reactivate' }}
+                            </button>
+                        </form>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="7" class="text-center text-muted py-4">No members found. Run <code>flask seed</code>.</td></tr>
+                <tr><td colspan="8" class="text-center text-muted py-4">No members found.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

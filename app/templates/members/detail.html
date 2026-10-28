@@ -1,7 +1,22 @@
 {% extends "base.html" %}
 {% block title %}{{ member.full_name }} - Rural SACCO{% endblock %}
 {% block content %}
-<a href="{{ url_for('members.list_members') }}" class="btn btn-sm btn-outline-secondary mb-3">&larr; Back</a>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <a href="{{ url_for('members.list_members') }}" class="btn btn-sm btn-outline-secondary">&larr; Back</a>
+    <div class="d-flex gap-2">
+        {% if session.get('role') in ('admin', 'treasurer') %}
+        <a href="{{ url_for('members.edit_member', member_id=member.id) }}" class="btn btn-sm btn-outline-primary">Edit Member</a>
+        {% endif %}
+        {% if session.get('role') == 'admin' %}
+        <form method="post" action="{{ url_for('members.toggle_status', member_id=member.id) }}" class="d-inline"
+              onsubmit="return confirm('{{ 'Deactivate' if member.status=='active' else 'Reactivate' }} this member?');">
+            <button type="submit" class="btn btn-sm btn-outline-{{ 'danger' if member.status=='active' else 'success' }}">
+                {{ 'Deactivate' if member.status=='active' else 'Reactivate' }}
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</div>
 <div class="row g-3">
     <div class="col-lg-4">
         <div class="card mb-3">

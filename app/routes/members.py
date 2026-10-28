@@ -8,7 +8,7 @@ from app.models.member import Member
 from app.models.transaction import Transaction
 from app.models.loan import Loan
 from app.models.guarantor import Guarantor
-from app.services.auth import login_required
+from app.services.auth import login_required, role_required
 from app.services.credit_scoring import score_member
 
 members_bp = Blueprint("members", __name__, url_prefix="/members")
@@ -92,3 +92,92 @@ def export_xlsx():
     return send_file(out,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         as_attachment=True, download_name="sacco_members.xlsx")
+
+
+@members_bp.route("/new", methods=["GET", "POST"])
+@role_required("admin", "treasurer")
+def new_member():
+    from datetime import datetime
+    from flask import flash, redirect, url_for
+    from app.services.validators import validate_member_form, next_member_number
+    errors, form = {}, {}
+    if request.method == "POST":
+        errors, cleaned = validate_member_form(request.form, member_id=None)
+        form = dict(request.form)
+        if not errors:
+            m = Member(
+                member_number=cleaned["member_number"],
+                full_name=cleaned["full_name"],
+                phone=cleaned["phone"],
+                national_id=cleaned.get("national_id"),
+                join_date=cleaned["join_date"],
+                shares=cleaned["shares"],
+                language_preference=cleaned["language_preference"],
+                consent_given=cleaned["consent_given"],
+                status="active",
+            )
+            db.session.add(m)
+            db.session.commit()
+            flash(f"Member {m.member_number} created.", "success")
+            return redirect(url_for("members.detail", member_id=m.id))
+    if not form:
+        form = {
+            "member_number": next_member_number(),
+            "join_date": datetime.utcnow().date().isoformat(),
+            "language_preference": "sw",
+            "shares": "0",
+        }
+    return render_template("members/form.html",
+                           form=form, errors=errors, member=None)
+
+
+@members_bp.route("/<int:member_id>/edit", methods=["GET", "POST"])
+@role_required("admin", "treasurer")
+def edit_member(member_id):
+    from flask import flash, redirect, url_for
+    from app.services.validators import validate_member_form
+    member = Member.query.get_or_404(member_id)
+    errors = {}
+    if request.method == "POST":
+        errors, cleaned = validate_member_form(request.form, member_id=member_id)
+        if not errors:
+            member.full_name = cleaned["full_name"]
+            member.phone = cleaned["phone"]
+            member.national_id = cleaned.get("national_id")
+            member.join_date = cleaned["join_date"]
+            member.shares = cleaned["shares"]
+            member.language_preference = cleaned["language_preference"]
+            member.consent_given = cleaned["consent_given"]
+            db.session.commit()
+            flash("Member updated.", "success")
+            return redirect(url_for("members.detail", member_id=member.id))
+        form = dict(request.form)
+    else:
+        form = {
+            "member_number": member.member_number,
+            "full_name": member.full_name,
+            "phone": member.phone,
+            "national_id": member.national_id or "",
+            "join_date": member.join_date.isoformat() if member.join_date else "",
+            "shares": str(member.shares or 0),
+            "language_preference": member.language_preference or "sw",
+            "consent_given": "on" if member.consent_given else "",
+        }
+    return render_template("members/form.html",
+                           form=form, errors=errors, member=member)
+
+
+@members_bp.route("/<int:member_id>/toggle", methods=["POST"])
+@role_required("admin")
+def toggle_status(member_id):
+    from flask import flash, redirect, url_for
+    member = Member.query.get_or_404(member_id)
+    if member.status == "active":
+        member.status = "inactive"
+        msg = f"Member {member.member_number} deactivated."
+    else:
+        member.status = "active"
+        msg = f"Member {member.member_number} reactivated."
+    db.session.commit()
+    flash(msg, "success")
+    return redirect(url_for("members.detail", member_id=member.id))

@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if member else 'Add' }} Member - Rural SACCO{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <a href="{{ url_for('members.list_members') }}" class="btn btn-sm btn-outline-secondary mb-3">&larr; Back</a>
+        <div class="card">
+            <div class="card-header"><strong>{{ 'Edit Member: ' + member.full_name if member else 'Add New Member' }}</strong></div>
+            <div class="card-body">
+                {% if errors %}
+                <div class="alert alert-danger py-2"><small>Please fix the highlighted fields.</small></div>
+                {% endif %}
+                <form method="post" novalidate>
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label small fw-semibold">Full Name *</label>
+                            <input type="text" name="full_name" class="form-control {{ 'is-invalid' if errors.full_name }}"
+                                   value="{{ form.full_name or '' }}" maxlength="120" required>
+                            {% if errors.full_name %}<div class="invalid-feedback">{{ errors.full_name }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Member Number *</label>
+                            <input type="text" name="member_number" class="form-control {{ 'is-invalid' if errors.member_number }} mono"
+                                   value="{{ form.member_number or '' }}" pattern="RSC-[0-9]{3,6}" required
+                                   {% if member %}readonly{% endif %}>
+                            {% if errors.member_number %}<div class="invalid-feedback">{{ errors.member_number }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Phone *</label>
+                            <input type="tel" name="phone" class="form-control {{ 'is-invalid' if errors.phone }}"
+                                   value="{{ form.phone or '' }}" placeholder="0712345678 or +254712345678"
+                                   pattern="[0-9+ ]{9,16}" required>
+                            {% if errors.phone %}<div class="invalid-feedback">{{ errors.phone }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">National ID <span class="text-muted">(optional)</span></label>
+                            <input type="text" name="national_id" class="form-control {{ 'is-invalid' if errors.national_id }}"
+                                   value="{{ form.national_id or '' }}" inputmode="numeric" pattern="[0-9]{6,10}">
+                            {% if errors.national_id %}<div class="invalid-feedback">{{ errors.national_id }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Join Date *</label>
+                            <input type="date" name="join_date" class="form-control {{ 'is-invalid' if errors.join_date }}"
+                                   value="{{ form.join_date or '' }}" required>
+                            {% if errors.join_date %}<div class="invalid-feedback">{{ errors.join_date }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Shares</label>
+                            <input type="number" name="shares" class="form-control {{ 'is-invalid' if errors.shares }}"
+                                   value="{{ form.shares or 0 }}" min="0" max="100000" step="1" required>
+                            {% if errors.shares %}<div class="invalid-feedback">{{ errors.shares }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Language</label>
+                            <select name="language_preference" class="form-select {{ 'is-invalid' if errors.language_preference }}">
+                                <option value="sw" {{ 'selected' if form.language_preference == 'sw' }}>Kiswahili</option>
+                                <option value="en" {{ 'selected' if form.language_preference == 'en' }}>English</option>
+                            </select>
+                            {% if errors.language_preference %}<div class="invalid-feedback">{{ errors.language_preference }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check mt-4">
+                                <input type="checkbox" name="consent_given" class="form-check-input" id="consent"
+                                       {{ 'checked' if form.consent_given }}>
+                                <label class="form-check-label small" for="consent">Data-consent given</label>
+                            </div>
+                        </div>
+                    </div>
+                    <hr class="my-4">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary px-4">{{ 'Save Changes' if member else 'Create Member' }}</button>
+                        <a href="{{ url_for('members.list_members') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

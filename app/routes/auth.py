@@ -15,6 +15,7 @@ def login():
         if user and user.check_password(password):
             session["user_id"] = user.id
             session["username"] = user.username
+            session["role"] = user.role
             flash(f"Welcome, {user.username}!", "success")
             return redirect(url_for("dashboard.index"))
         flash("Invalid username or password.", "danger")
