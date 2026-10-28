@@ -14,12 +14,10 @@ def create_app(config_class=Config):
     from app.routes.auth import auth_bp
     from app.routes.dashboard import dashboard_bp
     from app.routes.members import members_bp
+    from app.routes.reports import reports_bp
 
-    app.register_blueprint(mpesa_bp)
-    app.register_blueprint(ussd_bp)
-    app.register_blueprint(voice_bp)
-    app.register_blueprint(auth_bp)
-    app.register_blueprint(dashboard_bp)
-    app.register_blueprint(members_bp)
+    for bp in (mpesa_bp, ussd_bp, voice_bp, auth_bp,
+               dashboard_bp, members_bp, reports_bp):
+        app.register_blueprint(bp)
 
     return app

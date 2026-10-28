@@ -93,3 +93,49 @@ def sms_test_cmd(phone, message):
     from app.services.sms_service import send_sms
     with app.app_context():
         print(send_sms(phone, message))
+
+
+@app.cli.command("demo")
+def demo_cmd():
+    """One-command demo reset: seed + M-Pesa + reconcile + rescore."""
+    from scripts.seed import seed, reset as do_reset
+    from scripts.mpesa_mock import generate
+    from app.models.mpesa import MpesaTransaction
+    from app.services.credit_scoring import score_all_members
+    from app.services.risk_engine import run_all_checks
+    from app.services.mpesa_matcher import reconcile_all
+    with app.app_context():
+        db.create_all()
+        do_reset()
+        db.session.query(MpesaTransaction).delete()
+        db.session.commit()
+        print("[1/4] Wiped existing data")
+        stats = seed()
+        print(f"[2/4] Seeded {stats['members']} members, "
+              f"{stats['loans']} loans, {stats['transactions']} transactions")
+        generate(n=40)
+        r = reconcile_all()
+        print(f"[3/4] M-Pesa reconciled: {r['matched']} matched, "
+              f"{r['unmatched']} unmatched")
+        score_all_members()
+        run_all_checks()
+        print("[4/4] Scored all members + ran risk checks")
+        print("")
+        print("DONE. Run `flask run`, open http://localhost:5000")
+        print("Login: admin / admin123")
+
+
+@app.cli.command("backup")
+def backup_cmd():
+    """Backup sacco.db to backups/ with a timestamp."""
+    import shutil
+    from datetime import datetime as dt
+    from pathlib import Path
+    src = Path("sacco.db")
+    if not src.exists():
+        print("No sacco.db found.")
+        return
+    Path("backups").mkdir(exist_ok=True)
+    dst = Path("backups") / f"sacco_{dt.utcnow().strftime('%Y%m%d_%H%M%S')}.db"
+    shutil.copy(src, dst)
+    print(f"Backed up to {dst}")
