@@ -1,32 +1,45 @@
 {% extends "base.html" %}
 {% block title %}{{ member.full_name }} - Rural SACCO{% endblock %}
 {% block content %}
-<a href="{{ url_for('members.list_members') }}" class="btn btn-sm btn-outline-secondary mb-3">&larr; Back to members</a>
+<a href="{{ url_for('members.list_members') }}" class="btn btn-sm btn-outline-secondary mb-3">&larr; Back</a>
 <div class="row g-3">
     <div class="col-lg-4">
         <div class="card mb-3">
-            <div class="card-body">
-                <h5 class="card-title mb-1">{{ member.full_name }}</h5>
-                <p class="text-muted mb-2"><code>{{ member.member_number }}</code> · {{ member.phone }}</p>
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span>Rank</span>
-                    <span class="rank-badge rank-{{ member.default_rank }}">{{ member.default_rank }} — {{ breakdown.rank_label }}</span>
+            <div class="card-body text-center">
+                <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#1e40af);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:700;margin:0 auto 1rem;">
+                    {{ member.full_name[0] }}
                 </div>
-                <div class="d-flex justify-content-between mb-2">
-                    <span>Trust Score</span>
-                    <strong>{{ '%.1f'|format(member.trust_score) }} / 100</strong>
-                </div>
-                <div class="d-flex justify-content-between mb-2">
-                    <span>Savings</span>
-                    <strong>KES {{ '{:,.0f}'.format(member.savings_balance|float) }}</strong>
-                </div>
-                <div class="d-flex justify-content-between">
-                    <span>Shares</span>
-                    <strong>{{ member.shares }}</strong>
-                </div>
+                <h5 class="mb-1">{{ member.full_name }}</h5>
+                <p class="text-muted mb-2 mono">{{ member.member_number }}</p>
+                <span class="rank-badge rank-{{ member.default_rank }} mb-3">{{ member.default_rank }} — {{ breakdown.rank_label }}</span>
+                <hr>
+                <div class="d-flex justify-content-between mb-2"><span class="text-muted">Trust Score</span><strong>{{ '%.1f'|format(member.trust_score) }} / 100</strong></div>
+                <div class="d-flex justify-content-between mb-2"><span class="text-muted">Savings</span><strong>KES {{ '{:,.0f}'.format(member.savings_balance|float) }}</strong></div>
+                <div class="d-flex justify-content-between"><span class="text-muted">Shares</span><strong>{{ member.shares }}</strong></div>
             </div>
         </div>
         <div class="card">
+            <div class="card-header"><strong>Trust Score Radar</strong></div>
+            <div class="card-body"><div class="chart-container"><canvas id="radarChart"></canvas></div></div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card mb-3">
+            <div class="card-header"><strong>Loan Terms (Rank {{ breakdown.rank }})</strong></div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 col-md-3 mb-2"><div class="text-muted small">Max multiplier</div><strong>{{ breakdown.loan_terms.max_loan_multiplier }}×</strong></div>
+                    <div class="col-6 col-md-3 mb-2"><div class="text-muted small">Interest rate</div><strong>{{ breakdown.loan_terms.interest_rate }}%</strong></div>
+                    <div class="col-6 col-md-3 mb-2"><div class="text-muted small">Max term</div><strong>{{ breakdown.loan_terms.max_term_months }} mo</strong></div>
+                    <div class="col-6 col-md-3 mb-2"><div class="text-muted small">Guarantors</div><strong>{{ breakdown.loan_terms.guarantors_required }}</strong></div>
+                </div>
+            </div>
+        </div>
+        <div class="card mb-3">
+            <div class="card-header"><strong>Savings (Last 6 Months)</strong></div>
+            <div class="card-body"><div class="chart-container chart-sm"><canvas id="savingsChart"></canvas></div></div>
+        </div>
+        <div class="card mb-3">
             <div class="card-header"><strong>Score Breakdown</strong></div>
             <div class="card-body">
                 {% for key, item in breakdown.breakdown.items() %}
@@ -34,42 +47,28 @@
                 <div class="mb-3">
                     <div class="d-flex justify-content-between small mb-1">
                         <span>{{ key.replace('_', ' ').title() }}</span>
-                        <span>{{ '%.1f'|format(item.score) }} / {{ item.max }}</span>
+                        <span class="fw-semibold">{{ '%.1f'|format(item.score) }} / {{ item.max }}</span>
                     </div>
                     <div class="progress score-bar">
-                        <div class="progress-bar {{ 'bg-success' if pct >= 70 else 'bg-warning' if pct >= 40 else 'bg-danger' }}"
-                             style="width: {{ pct }}%"></div>
+                        <div class="progress-bar {{ 'bg-success' if pct >= 70 else 'bg-warning' if pct >= 40 else 'bg-danger' }}" style="width: {{ pct }}%"></div>
                     </div>
                     <small class="text-muted">{{ item.note }}</small>
                 </div>
                 {% endfor %}
             </div>
         </div>
-    </div>
-    <div class="col-lg-8">
-        <div class="card mb-3">
-            <div class="card-header"><strong>Loan Terms (Rank {{ breakdown.rank }})</strong></div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-6 col-md-3 mb-2"><small class="text-muted d-block">Max multiplier</small><strong>{{ breakdown.loan_terms.max_loan_multiplier }}× savings</strong></div>
-                    <div class="col-6 col-md-3 mb-2"><small class="text-muted d-block">Interest rate</small><strong>{{ breakdown.loan_terms.interest_rate }}%</strong></div>
-                    <div class="col-6 col-md-3 mb-2"><small class="text-muted d-block">Max term</small><strong>{{ breakdown.loan_terms.max_term_months }} mo</strong></div>
-                    <div class="col-6 col-md-3 mb-2"><small class="text-muted d-block">Guarantors</small><strong>{{ breakdown.loan_terms.guarantors_required }}</strong></div>
-                </div>
-            </div>
-        </div>
-        <div class="card mb-3">
-            <div class="card-header"><strong>Digital Passbook (last 20 transactions)</strong></div>
+        <div class="card">
+            <div class="card-header"><strong>Digital Passbook (last 20)</strong></div>
             <div class="table-responsive">
-                <table class="table table-sm mb-0">
-                    <thead class="table-light"><tr><th>Date</th><th>Type</th><th>Amount</th><th>Ref</th><th>Channel</th></tr></thead>
+                <table class="table table-sm table-hover mb-0">
+                    <thead><tr><th>Date</th><th>Type</th><th class="text-end">Amount</th><th>Ref</th><th>Channel</th></tr></thead>
                     <tbody>
                         {% for t in txns %}
                         <tr>
-                            <td>{{ t.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
-                            <td>{{ t.type }}</td>
-                            <td class="{{ 'text-success' if t.type=='deposit' else 'text-danger' }}">KES {{ '{:,.2f}'.format(t.amount|float) }}</td>
-                            <td><small><code>{{ t.reference or t.mpesa_ref or '—' }}</code></small></td>
+                            <td>{{ t.created_at.strftime('%d/%m %H:%M') }}</td>
+                            <td><span class="status-pill {{ 'status-success' if t.type=='deposit' else 'status-warning' }}">{{ t.type }}</span></td>
+                            <td class="text-end {{ 'text-success' if t.type=='deposit' else 'text-danger' }}">KES {{ '{:,.2f}'.format(t.amount|float) }}</td>
+                            <td class="mono small">{{ t.reference or t.mpesa_ref or '—' }}</td>
                             <td><small>{{ t.channel }}</small></td>
                         </tr>
                         {% else %}
@@ -79,27 +78,41 @@
                 </table>
             </div>
         </div>
-        <div class="card">
-            <div class="card-header"><strong>Loans ({{ loans|length }})</strong></div>
-            <div class="table-responsive">
-                <table class="table table-sm mb-0">
-                    <thead class="table-light"><tr><th>Loan #</th><th>Principal</th><th>Outstanding</th><th>Due</th><th>Status</th></tr></thead>
-                    <tbody>
-                        {% for loan in loans %}
-                        <tr>
-                            <td><code>{{ loan.loan_number }}</code></td>
-                            <td>KES {{ '{:,.0f}'.format(loan.principal|float) }}</td>
-                            <td>KES {{ '{:,.0f}'.format(loan.outstanding_balance|float) }}</td>
-                            <td>{{ loan.due_date.strftime('%d/%m/%Y') if loan.due_date else '—' }}</td>
-                            <td><span class="badge bg-{{ 'success' if loan.status=='repaid' else 'danger' if loan.status=='defaulted' else 'warning' }}">{{ loan.status }}</span></td>
-                        </tr>
-                        {% else %}
-                        <tr><td colspan="5" class="text-center text-muted py-3">No loans.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
     </div>
 </div>
+{% endblock %}
+{% block scripts %}
+<script>
+new Chart(document.getElementById('radarChart'), {
+    type: 'radar',
+    data: {
+        labels: {{ radar_labels|tojson }},
+        datasets: [{
+            label: 'Score %',
+            data: {{ radar_scores|tojson }},
+            borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.2)', pointBackgroundColor: '#3b82f6',
+        }]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: { r: { beginAtZero: true, max: 100, ticks: { stepSize: 25, font: { size: 9 } } } },
+        plugins: { legend: { display: false } }
+    }
+});
+new Chart(document.getElementById('savingsChart'), {
+    type: 'line',
+    data: {
+        labels: {{ month_labels|tojson }},
+        datasets: [
+            { label: 'Deposits', data: {{ deposits|tojson }}, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', tension: 0.3, fill: true },
+            { label: 'Withdrawals', data: {{ withdrawals|tojson }}, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', tension: 0.3, fill: true }
+        ]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } },
+        scales: { y: { beginAtZero: true, ticks: { callback: v => 'KES ' + v.toLocaleString() } } }
+    }
+});
+</script>
 {% endblock %}

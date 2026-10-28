@@ -3,88 +3,86 @@
 {% block content %}
 
 <div class="row g-3 mb-4">
-    <div class="col-md-3">
-        <div class="card stat-card primary">
-            <div class="card-body">
-                <div class="stat-value">{{ total_members }}</div>
-                <div class="stat-label">Active Members</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card stat-card success">
-            <div class="card-body">
-                <div class="stat-value">KES {{ '{:,.0f}'.format(total_savings) }}</div>
-                <div class="stat-label">Total Savings</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card stat-card warning">
-            <div class="card-body">
-                <div class="stat-value">KES {{ '{:,.0f}'.format(total_loan_book) }}</div>
-                <div class="stat-label">Loan Book</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card stat-card {{ 'success' if match_rate >= 90 else 'danger' }}">
-            <div class="card-body">
-                <div class="stat-value">{{ '%.1f'|format(match_rate) }}%</div>
-                <div class="stat-label">M-Pesa Match Rate</div>
-            </div>
-        </div>
-    </div>
+    <div class="col-md-3"><div class="stat-card">
+        <div class="stat-value">{{ total_members }}</div><div class="stat-label">Active Members</div>
+    </div></div>
+    <div class="col-md-3"><div class="stat-card success">
+        <div class="stat-value">KES {{ '{:,.0f}'.format(total_savings) }}</div><div class="stat-label">Total Savings</div>
+    </div></div>
+    <div class="col-md-3"><div class="stat-card warning">
+        <div class="stat-value">KES {{ '{:,.0f}'.format(total_loan_book) }}</div><div class="stat-label">Loan Book</div>
+    </div></div>
+    <div class="col-md-3"><div class="stat-card {{ 'success' if match_rate >= 90 else 'danger' }}">
+        <div class="stat-value">{{ '%.1f'|format(match_rate) }}%</div><div class="stat-label">M-Pesa Match Rate</div>
+    </div></div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4"><div class="card h-100">
+        <div class="card-header"><strong>M-Pesa Reconciliation</strong></div>
+        <div class="card-body"><div class="chart-container chart-sm"><canvas id="matchChart"></canvas></div></div>
+    </div></div>
+    <div class="col-md-4"><div class="card h-100">
+        <div class="card-header"><strong>Member Rank Distribution</strong></div>
+        <div class="card-body"><div class="chart-container chart-sm"><canvas id="rankChart"></canvas></div></div>
+    </div></div>
+    <div class="col-md-4"><div class="card h-100">
+        <div class="card-header"><strong>Open Risks by Severity</strong></div>
+        <div class="card-body"><div class="chart-container chart-sm"><canvas id="riskChart"></canvas></div></div>
+    </div></div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-8"><div class="card h-100">
+        <div class="card-header"><strong>Savings Flow (Last 12 Months)</strong></div>
+        <div class="card-body"><div class="chart-container"><canvas id="savingsChart"></canvas></div></div>
+    </div></div>
+    <div class="col-lg-4"><div class="card h-100">
+        <div class="card-header"><strong>Overdue Loan Aging</strong></div>
+        <div class="card-body"><div class="chart-container"><canvas id="agingChart"></canvas></div></div>
+    </div></div>
 </div>
 
 <div class="row g-3">
-    <div class="col-lg-8">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span><strong>Recent M-Pesa Transactions</strong>
-                    <span class="badge bg-danger ms-2">{{ unmatched_count }} unmatched</span>
-                </span>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-sm table-hover mb-0">
-                    <thead class="table-light">
-                        <tr><th>Trans ID</th><th>Phone</th><th>Amount</th><th>Ref</th><th>Status</th></tr>
-                    </thead>
-                    <tbody>
-                        {% for m in recent_mpesa %}
-                        <tr class="{{ 'row-matched' if m.status=='matched' else 'row-unmatched' }}">
-                            <td><code>{{ m.trans_id }}</code></td>
-                            <td>{{ m.msisdn }}</td>
-                            <td>KES {{ '{:,.2f}'.format(m.amount|float) }}</td>
-                            <td>{{ m.account_ref or '—' }}</td>
-                            <td>
-                                {% if m.status=='matched' %}
-                                    <span class="badge bg-success">matched: {{ m.match_method }}</span>
-                                {% else %}
-                                    <span class="badge bg-danger">unmatched</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr><td colspan="5" class="text-center text-muted py-3">No M-Pesa transactions yet. Run <code>flask load-mpesa</code>.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+    <div class="col-lg-8"><div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <strong>Recent M-Pesa Transactions</strong>
+            <span class="status-pill {{ 'status-danger' if unmatched_count > 0 else 'status-success' }}">{{ unmatched_count }} unmatched</span>
         </div>
-    </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead><tr><th>Trans ID</th><th>Phone</th><th class="text-end">Amount</th><th>Ref</th><th>Status</th></tr></thead>
+                <tbody>
+                    {% for m in recent_mpesa %}
+                    <tr class="{{ 'row-matched' if m.status=='matched' else 'row-unmatched' }}">
+                        <td class="mono">{{ m.trans_id }}</td>
+                        <td>{{ m.msisdn }}</td>
+                        <td class="text-end">KES {{ '{:,.2f}'.format(m.amount|float) }}</td>
+                        <td>{{ m.account_ref or '—' }}</td>
+                        <td>
+                            {% if m.status=='matched' %}<span class="status-pill status-success">{{ m.match_method or 'matched' }}</span>
+                            {% else %}<span class="status-pill status-danger">unmatched</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center text-muted py-4">No transactions yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div></div>
     <div class="col-lg-4">
         <div class="card mb-3">
-            <div class="card-header"><strong>Open Risks ({{ open_risks|length }})</strong></div>
-            <div class="list-group list-group-flush" style="max-height:340px;overflow-y:auto;">
+            <div class="card-header"><strong>Open Risks</strong></div>
+            <div class="list-group list-group-flush" style="max-height:280px;overflow-y:auto;">
                 {% for r in open_risks %}
-                <div class="list-group-item">
-                    <span class="badge bg-{{ 'danger' if r.severity in ('high','critical') else 'warning' }} me-1">{{ r.severity }}</span>
-                    <small class="text-muted">{{ r.risk_type }}</small><br>
-                    <small>{{ r.description[:80] }}{% if r.description|length > 80 %}…{% endif %}</small>
+                <div class="list-group-item px-3 py-2">
+                    <span class="status-pill {{ 'status-danger' if r.severity in ('high','critical') else 'status-warning' }} mb-1">{{ r.severity }}</span>
+                    <div class="small text-muted">{{ r.risk_type }}</div>
+                    <div class="small">{{ r.description[:70] }}{% if r.description|length > 70 %}…{% endif %}</div>
                 </div>
                 {% else %}
-                <div class="list-group-item text-muted">No open risks. Run <code>flask rescore</code>.</div>
+                <div class="list-group-item text-muted">No open risks.</div>
                 {% endfor %}
             </div>
         </div>
@@ -92,9 +90,9 @@
             <div class="card-header"><strong>Overdue Loans</strong></div>
             <div class="list-group list-group-flush">
                 {% for loan in overdue %}
-                <div class="list-group-item d-flex justify-content-between">
-                    <span><small><code>{{ loan.loan_number }}</code></small></span>
-                    <span class="text-danger small">KES {{ '{:,.0f}'.format(loan.outstanding_balance|float) }}</span>
+                <div class="list-group-item d-flex justify-content-between px-3 py-2">
+                    <span class="mono small">{{ loan.loan_number }}</span>
+                    <span class="text-danger small fw-semibold">KES {{ '{:,.0f}'.format(loan.outstanding_balance|float) }}</span>
                 </div>
                 {% else %}
                 <div class="list-group-item text-muted small">None overdue.</div>
@@ -104,4 +102,54 @@
     </div>
 </div>
 
+{% endblock %}
+{% block scripts %}
+<script>
+const opts = { responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } } };
+
+new Chart(document.getElementById('matchChart'), {
+    type: 'doughnut',
+    data: { labels: ['Matched','Unmatched'],
+        datasets: [{ data: [{{ mpesa_matched }}, {{ unmatched_count }}],
+            backgroundColor: ['#10b981','#ef4444'], borderWidth: 0 }] },
+    options: { ...opts, cutout: '70%' }
+});
+
+new Chart(document.getElementById('rankChart'), {
+    type: 'doughnut',
+    data: { labels: ['A','B','C','D','E'],
+        datasets: [{ data: [{{ rank_dist.A }},{{ rank_dist.B }},{{ rank_dist.C }},{{ rank_dist.D }},{{ rank_dist.E }}],
+            backgroundColor: ['#10b981','#3b82f6','#f59e0b','#fb923c','#ef4444'], borderWidth: 0 }] },
+    options: { ...opts, cutout: '70%' }
+});
+
+new Chart(document.getElementById('riskChart'), {
+    type: 'bar',
+    data: { labels: ['Low','Medium','High','Critical'],
+        datasets: [{ data: [{{ risk_sev.low }},{{ risk_sev.medium }},{{ risk_sev.high }},{{ risk_sev.critical }}],
+            backgroundColor: ['#94a3b8','#f59e0b','#fb923c','#ef4444'], borderRadius: 6 }] },
+    options: { ...opts, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+});
+
+new Chart(document.getElementById('savingsChart'), {
+    type: 'line',
+    data: { labels: {{ month_labels|tojson }},
+        datasets: [
+            { label: 'Deposits', data: {{ deposits|tojson }}, borderColor: '#10b981',
+              backgroundColor: 'rgba(16,185,129,0.1)', tension: 0.3, fill: true },
+            { label: 'Withdrawals', data: {{ withdrawals|tojson }}, borderColor: '#ef4444',
+              backgroundColor: 'rgba(239,68,68,0.1)', tension: 0.3, fill: true }
+        ] },
+    options: { ...opts, scales: { y: { beginAtZero: true, ticks: { callback: v => 'KES ' + v.toLocaleString() } } } }
+});
+
+new Chart(document.getElementById('agingChart'), {
+    type: 'bar',
+    data: { labels: ['0-30','31-60','61-90','90+'],
+        datasets: [{ data: [{{ aging['0-30'] }},{{ aging['31-60'] }},{{ aging['61-90'] }},{{ aging['90+'] }}],
+            backgroundColor: ['#fbbf24','#fb923c','#f97316','#ef4444'], borderRadius: 6 }] },
+    options: { ...opts, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { callback: v => 'KES ' + v.toLocaleString() } } } }
+});
+</script>
 {% endblock %}
