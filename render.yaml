@@ -18,7 +18,7 @@ services:
           property: connectionString
       - key: DEFAULT_LANGUAGE
         value: sw
-  - type: pserv
-    name: rural-sacco-db
+
+databases:
+  - name: rural-sacco-db
     plan: free
-    ipAllowList: []
