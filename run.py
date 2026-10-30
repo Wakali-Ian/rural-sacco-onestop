@@ -186,3 +186,31 @@ def etims_sync_cmd(transaction_id, description):
             print(f"Receipt {receipt.invoice_no}: {receipt.qr_url}")
         except EtimsError as e:
             print(f"eTIMS error: {e}")
+
+
+@app.cli.command("bootstrap")
+def bootstrap_cmd():
+    """Production entry: init DB, seed only if empty. Idempotent."""
+    from scripts.seed import seed
+    from app.models.member import Member
+    with app.app_context():
+        db.create_all()
+        if Member.query.count() == 0:
+            print("[bootstrap] Empty DB — seeding demo data")
+            stats = seed()
+            for k, v in stats.items():
+                print(f"  {k:>14}: {v}")
+            from scripts.mpesa_mock import generate
+            from app.services.mpesa_matcher import reconcile_all
+            from app.services.credit_scoring import score_all_members
+            from app.services.risk_engine import run_all_checks
+            from app.services.rewards_engine import recompute_all
+            generate(n=40)
+            r = reconcile_all()
+            print(f"  M-Pesa: {r['matched']} matched, {r['unmatched']} unmatched")
+            score_all_members()
+            run_all_checks()
+            recompute_all()
+            print("[bootstrap] Demo ready")
+        else:
+            print(f"[bootstrap] DB has {Member.query.count()} members — skipping seed")
