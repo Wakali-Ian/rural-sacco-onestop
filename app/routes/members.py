@@ -34,8 +34,12 @@ def list_members():
 def detail(member_id):
     member = Member.query.get_or_404(member_id)
     breakdown = score_member(member_id, persist=False)
+    from app.models.etims import EtimsReceipt
     txns = (Transaction.query.filter_by(member_id=member_id)
             .order_by(Transaction.created_at.desc()).limit(20).all())
+    receipts = {r.transaction_id: r for r in
+                EtimsReceipt.query.filter(
+                    EtimsReceipt.transaction_id.in_([t.id for t in txns])).all()}
     loans = (Loan.query.filter_by(member_id=member_id)
              .order_by(Loan.created_at.desc()).all())
     guarantees = Guarantor.query.filter_by(guarantor_member_id=member_id).all()
@@ -65,9 +69,18 @@ def detail(member_id):
         elif txn.type == "withdrawal":
             wd[key] += float(txn.amount)
 
+    from app.services.rewards_engine import get_or_create_account, bonus_for_member, next_tier
+    from app.models.sacco_settings import SaccoSettings
+    account = get_or_create_account(member.id)
+    settings = SaccoSettings.get()
+    bonus = bonus_for_member(member, account, settings)
+    nxt = next_tier(member, account, settings)
     return render_template("members/detail.html",
                            member=member, breakdown=breakdown,
+                           account=account, settings=settings,
+                           bonus=bonus, next_tier=nxt,
                            txns=txns, loans=loans, guarantees=guarantees,
+                           receipts=receipts,
                            radar_labels=radar_labels, radar_scores=radar_scores,
                            month_labels=month_labels,
                            deposits=[round(dep[k], 2) for k in keys],

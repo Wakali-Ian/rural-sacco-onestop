@@ -50,6 +50,32 @@
                 </div>
             </div>
         </div>
+        <div class="card mb-3" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-color: #fbbf24;">
+            <div class="card-header" style="background: transparent;"><strong>💎 Rewards & Annual Bonus</strong></div>
+            <div class="card-body">
+                <div class="row text-center mb-3">
+                    <div class="col-4"><div class="text-muted small">Tier</div><strong class="text-capitalize">{{ account.tier }}</strong></div>
+                    <div class="col-4"><div class="text-muted small">Points</div><strong>{{ account.points }}</strong></div>
+                    <div class="col-4"><div class="text-muted small">Streak</div><strong>{{ account.streak_months }} mo {% if account.streak_months >= 12 %}🔥{% endif %}</strong></div>
+                </div>
+                <div class="alert alert-light mb-2 py-2 small">
+                    <div class="d-flex justify-content-between"><span>Savings bonus ({{ '%.2f'|format(bonus.rate * 100) }}% rate)</span><strong>KES {{ '{:,.2f}'.format(bonus.savings_bonus) }}</strong></div>
+                    {% if bonus.streak_bonus > 0 %}
+                    <div class="d-flex justify-content-between"><span>12-month streak bonus</span><strong>KES {{ '{:,.2f}'.format(bonus.streak_bonus) }}</strong></div>
+                    {% endif %}
+                    <hr class="my-1">
+                    <div class="d-flex justify-content-between"><span><strong>Total annual bonus</strong></span><strong class="text-success">KES {{ '{:,.2f}'.format(bonus.total) }}</strong></div>
+                </div>
+                {% if next_tier %}
+                <div class="small text-muted text-center">🎯 {{ next_tier.points_needed }} more points to reach <strong>{{ next_tier.next_tier }}</strong></div>
+                {% else %}
+                <div class="small text-muted text-center">✨ Highest tier reached</div>
+                {% endif %}
+                {% if account.total_bonus_earned and account.total_bonus_earned > 0 %}
+                <div class="small text-center mt-2"><span class="status-pill status-success">Paid to date: KES {{ '{:,.2f}'.format(account.total_bonus_earned|float) }}</span></div>
+                {% endif %}
+            </div>
+        </div>
         <div class="card mb-3">
             <div class="card-header"><strong>Savings (Last 6 Months)</strong></div>
             <div class="card-body"><div class="chart-container chart-sm"><canvas id="savingsChart"></canvas></div></div>
@@ -85,6 +111,13 @@
                             <td class="text-end {{ 'text-success' if t.type=='deposit' else 'text-danger' }}">KES {{ '{:,.2f}'.format(t.amount|float) }}</td>
                             <td class="mono small">{{ t.reference or t.mpesa_ref or '—' }}</td>
                             <td><small>{{ t.channel }}</small></td>
+                            <td>
+                                {% if receipts.get(t.id) %}
+                                <a href="{{ receipts[t.id].qr_url }}" target="_blank" class="btn btn-sm btn-outline-success">eTIMS</a>
+                                {% else %}
+                                <span class="text-muted small">—</span>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% else %}
                         <tr><td colspan="5" class="text-center text-muted py-3">No transactions.</td></tr>
