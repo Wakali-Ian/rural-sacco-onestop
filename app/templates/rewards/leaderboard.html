@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Rewards - Rural SACCO{% endblock %}
+{% block content %}
+<h4 class="mb-3">Rewards Leaderboard</h4>
+<p class="text-muted small mb-4">Points are earned by saving: {{ settings.reward_points_per_100_kes }} point(s) per KES 100. Tiers unlock higher annual bonus rates.</p>
+
+<div class="row g-3 mb-4">
+    {% for tier, count in tier_counts.items() %}
+    <div class="col-md-3">
+        <div class="card stat-card {% if tier == 'platinum' %}primary{% elif tier == 'gold' %}warning{% elif tier == 'silver' %}success{% endif %}">
+            <div class="card-body">
+                <div class="stat-value">{{ count }}</div>
+                <div class="stat-label">{{ tier|title }} Members</div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header"><strong>Top 10 by Points</strong></div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead><tr><th>#</th><th>Member</th><th>Tier</th><th class="text-end">Points</th></tr></thead>
+                    <tbody>
+                        {% for member, acct in by_points %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td><a href="{{ url_for('members.detail', member_id=member.id) }}" class="text-decoration-none">{{ member.full_name }}</a><br><small class="text-muted mono">{{ member.member_number }}</small></td>
+                            <td><span class="rank-badge rank-{{ {'bronze':'E','silver':'D','gold':'C','platinum':'A'}[acct.tier] }}">{{ acct.tier }}</span></td>
+                            <td class="text-end fw-semibold">{{ acct.points }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header"><strong>Top 10 Streaks (Consecutive Months Saved)</strong></div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead><tr><th>#</th><th>Member</th><th class="text-end">Streak</th></tr></thead>
+                    <tbody>
+                        {% for member, acct in by_streak %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td><a href="{{ url_for('members.detail', member_id=member.id) }}" class="text-decoration-none">{{ member.full_name }}</a><br><small class="text-muted mono">{{ member.member_number }}</small></td>
+                            <td class="text-end fw-semibold">{{ acct.streak_months }} mo {% if acct.streak_months >= 12 %}<span class="status-pill status-success ms-1">🔥 12+</span>{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

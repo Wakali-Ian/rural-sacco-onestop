@@ -12,3 +12,6 @@ from app.models.penalty import Penalty
 from app.models.risk import RiskEvent
 from app.models.audit import AuditLog
 from app.models.user import User
+from app.models.sacco_settings import SaccoSettings
+from app.models.reward import RewardAccount, RewardTransaction
+from app.models.etims import EtimsConfig, EtimsReceipt
