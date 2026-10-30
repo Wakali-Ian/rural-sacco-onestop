@@ -139,3 +139,50 @@ def backup_cmd():
     dst = Path("backups") / f"sacco_{dt.utcnow().strftime('%Y%m%d_%H%M%S')}.db"
     shutil.copy(src, dst)
     print(f"Backed up to {dst}")
+
+
+@app.cli.command("rewards-recalc")
+def rewards_recalc_cmd():
+    """Recompute points, streaks, and tiers for all members."""
+    from app.services.rewards_engine import recompute_all
+    with app.app_context():
+        result = recompute_all()
+        print(f"Recomputed rewards for {result['processed']} members")
+
+
+@app.cli.command("bonus-post")
+@click.option("--year", type=int, required=True)
+@click.option("--no-credit-savings", is_flag=True)
+def bonus_post_cmd(year, no_credit_savings):
+    """Post annual savings bonuses for the given year."""
+    from app.services.rewards_engine import apply_annual_bonus
+    with app.app_context():
+        r = apply_annual_bonus(year, credit_to_savings=not no_credit_savings)
+        print(f"Posted bonuses to {r['posted']} members, total KES {r['total_kes']:,.2f}")
+
+
+@app.cli.command("etims-init")
+@click.option("--pin", required=True)
+@click.option("--branch", default="00")
+@click.option("--device", required=True)
+@click.option("--url", default=None)
+def etims_init_cmd(pin, branch, device, url):
+    """Initialize an eTIMS OSCU device and store the CMC key."""
+    from app.services.etims_service import initialize_device
+    with app.app_context():
+        cfg = initialize_device(pin, branch, device, base_url=url)
+        print(f"eTIMS device initialized for {cfg.kra_pin}. CMC key stored.")
+
+
+@app.cli.command("etims-sync")
+@click.option("--transaction-id", type=int, required=True)
+@click.option("--description", default="SACCO transaction")
+def etims_sync_cmd(transaction_id, description):
+    """Sign a single SACCO transaction and store its eTIMS receipt."""
+    from app.services.etims_service import sign_transaction, EtimsError
+    with app.app_context():
+        try:
+            receipt = sign_transaction(transaction_id, description)
+            print(f"Receipt {receipt.invoice_no}: {receipt.qr_url}")
+        except EtimsError as e:
+            print(f"eTIMS error: {e}")
