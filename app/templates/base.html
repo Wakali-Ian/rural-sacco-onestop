@@ -21,7 +21,11 @@
         <div class="navbar-nav ms-auto align-items-center">
             <a class="nav-link" href="{{ url_for('dashboard.index') }}">Dashboard</a>
             <a class="nav-link" href="{{ url_for('members.list_members') }}">Members</a>
+            <a class="nav-link" href="{{ url_for('rewards.index') }}">Rewards</a>
             <a class="nav-link" href="{{ url_for('reports.agm_pdf') }}">AGM PDF</a>
+            {% if session.get('role') == 'admin' %}
+            <a class="nav-link" href="{{ url_for('admin.settings') }}">Settings</a>
+            {% endif %}
             <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
         </div>
         {% endif %}
